@@ -26,12 +26,13 @@ pipeline {
                 sh "docker build -t ${IMAGE_NAME}:latest ."
             }
         }
- 
-       stage('Deploy') {
+ stage('Deploy') {
     steps {
-        // The -p flag forces a consistent project name, ensuring 'down' finds and destroys the old container first
-        sh 'docker compose -p task-tracker down || true'
-        sh 'docker compose -p task-tracker up -d'
+        // Point down explicitly to the compose file so it knows exactly what to destroy
+        sh 'docker compose -f docker-compose.yml -p task-tracker down --remove-orphans || true'
+        
+        // Force recreation of the container to prevent any naming collision bugs
+        sh 'docker compose -f docker-compose.yml -p task-tracker up -d --force-recreate'
     }
 }
  
