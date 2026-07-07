@@ -28,10 +28,13 @@ pipeline {
         }
  stage('Deploy') {
     steps {
-        // Point down explicitly to the compose file so it knows exactly what to destroy
+        // 1. Clean up project-specific compose resources
         sh 'docker compose -f docker-compose.yml -p task-tracker down --remove-orphans || true'
         
-        // Force recreation of the container to prevent any naming collision bugs
+        // 2. FORCE KILL any container globally using the exact name 'task-tracker' (The Magic Line)
+        sh 'docker rm -f task-tracker || true'
+        
+        // 3. Bring the service up safely
         sh 'docker compose -f docker-compose.yml -p task-tracker up -d --force-recreate'
     }
 }
