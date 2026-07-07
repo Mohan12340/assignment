@@ -1,0 +1,77 @@
+pipeline {
+    agent any
+ 
+    environment {
+        IMAGE_NAME = "task-tracker"
+        CONTAINER_NAME = "task-tracker"
+    }
+ 
+    stages {
+        stage('SCM Pull') {
+            steps {
+                checkout scm
+            }
+        }
+ 
+        stage('Install Dependencies and Run Tests') {
+            steps {
+                sh 'npm install'
+                sh 'npm test'
+            }
+        }
+ 
+        stage('Build') {
+            steps {
+                // Using double quotes so Jenkins environment variables interpolate correctly
+                sh "docker build -t ${IMAGE_NAME}:latest ."
+            }
+        }
+ 
+        stage('Deploy') {
+            steps {
+                // Removed --build flag to bypass the outdated Buildx issue
+                sh '''
+                docker-compose down || true
+                docker-compose up -d
+                '''
+            }
+        }
+ 
+        stage('Curl') {
+            steps {
+                sh 'sleep 10'
+                sh 'echo "===== HOME ====="'
+                sh 'curl -f http://localhost:3000/'
+                sh 'echo ""'
+ 
+                sh 'echo "===== HEALTH ====="'
+                sh 'curl -f http://localhost:3000/health'
+                sh 'echo ""'
+ 
+                sh 'echo "===== TASKS ====="'
+                sh 'curl -f http://localhost:3000/api/tasks'
+                sh 'echo ""'
+            }
+        }
+ 
+        stage('Cleanup') {
+            steps {
+                // REMOVED "docker compose down" so the app stays running!
+                sh 'docker image prune -f'
+                cleanWs()
+            }
+        }
+    }
+ 
+    post {
+        always {
+            echo 'Pipeline Finished'
+        }
+        success {
+            echo 'Application deployed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
+}
