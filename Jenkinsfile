@@ -27,10 +27,11 @@ pipeline {
             }
         }
  
-        stage('Deploy') {
+       stage('Deploy') {
     steps {
-        sh 'docker compose down || true'
-        sh 'docker compose up -d'
+        // The -p flag forces a consistent project name, ensuring 'down' finds and destroys the old container first
+        sh 'docker compose -p task-tracker down || true'
+        sh 'docker compose -p task-tracker up -d'
     }
 }
  
