@@ -28,14 +28,11 @@ pipeline {
         }
  
         stage('Deploy') {
-            steps {
-                // Removed --build flag to bypass the outdated Buildx issue
-                sh '''
-                docker-compose down || true
-                docker-compose up -d
-                '''
-            }
-        }
+    steps {
+        sh 'docker compose down || true'
+        sh 'docker compose up -d'
+    }
+}
  
         stage('Curl') {
             steps {
