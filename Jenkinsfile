@@ -1,79 +1,34 @@
 pipeline {
     agent any
  
-    environment {
-        IMAGE_NAME = "task-tracker"
-        CONTAINER_NAME = "task-tracker"
+    environment{
+        IMAGE_NAME = "task-traker"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
  
-    stages {
-        stage('SCM Pull') {
-            steps {
-                checkout scm
+    stages{
+ 
+        stage('checkout'){
+            steps{
+                git branch: 'main', credentialsId: 'git-hub', url: 'https://github.com/Daya9096/traker-1.git'
+                    
             }
         }
  
-        stage('Install Dependencies and Run Tests') {
-            steps {
-                sh 'npm install'
-                sh 'npm test'
+        stage('Build docker image'){
+            steps{
+                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
             }
         }
  
-        stage('Build') {
-            steps {
-                // Using double quotes so Jenkins environment variables interpolate correctly
-                sh "docker build -t ${IMAGE_NAME}:latest ."
+        stage('Deploy using docker compose'){
+            steps{
+                sh """
+                docker-compose down --remove-orphans || true
+                docker-compose up -d
+                """
+ 
             }
-        }
- stage('Deploy') {
-    steps {
-        // 1. Clean up project-specific compose resources
-        sh 'docker compose -f docker-compose.yml -p task-tracker down --remove-orphans || true'
-        
-        // 2. FORCE KILL any container globally using the exact name 'task-tracker' (The Magic Line)
-        sh 'docker rm -f task-tracker || true'
-        
-        // 3. Bring the service up safely
-        sh 'docker compose -f docker-compose.yml -p task-tracker up -d --force-recreate'
-    }
-}
- 
-        stage('Curl') {
-            steps {
-                sh 'sleep 10'
-                sh 'echo "===== HOME ====="'
-                sh 'curl -f http://localhost:3000/'
-                sh 'echo ""'
- 
-                sh 'echo "===== HEALTH ====="'
-                sh 'curl -f http://localhost:3000/health'
-                sh 'echo ""'
- 
-                sh 'echo "===== TASKS ====="'
-                sh 'curl -f http://localhost:3000/api/tasks'
-                sh 'echo ""'
-            }
-        }
- 
-        stage('Cleanup') {
-            steps {
-                // REMOVED "docker compose down" so the app stays running!
-                sh 'docker image prune -f'
-                cleanWs()
-            }
-        }
-    }
- 
-    post {
-        always {
-            echo 'Pipeline Finished'
-        }
-        success {
-            echo 'Application deployed successfully.'
-        }
-        failure {
-            echo 'Pipeline failed.'
         }
     }
 }
